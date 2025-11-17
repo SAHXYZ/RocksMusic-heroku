@@ -1,0 +1,129 @@
+[16-Nov-25 08:34:24 - INFO] - RocksMusic.core.mongo - Connecting to your Mongo Database...
+[16-Nov-25 08:34:24 - INFO] - RocksMusic.core.mongo - Connected to your Mongo Database.
+[16-Nov-25 08:34:24 - INFO] - RocksMusic.core.dir - Directories Updated.
+[16-Nov-25 08:34:24 - INFO] - RocksMusic.core.git - Git Client Found [VPS DEPLOYER]
+[16-Nov-25 08:34:24 - INFO] - RocksMusic.misc - Local Database Initialized.
+[16-Nov-25 08:34:24 - INFO] - RocksMusic.core.bot - Starting Bot...
+[16-Nov-25 08:34:24 - INFO] - RocksMusic.misc - Sudoers Loaded.
+[16-Nov-25 08:35:00 - INFO] - RocksMusic.core.bot - Music Bot Started as Vᴀʟᴇʀɪᴇ Mᴜsɪᴄ
+[16-Nov-25 08:35:00 - INFO] - RocksMusic.plugins - Successfully Imported Modules...
+[16-Nov-25 08:35:00 - INFO] - RocksMusic.core.userbot - Starting Assistants...
+[16-Nov-25 08:35:01 - INFO] - RocksMusic.core.userbot - Assistant Started as <a href=tg://user?id=5927382671>JASS</a>
+[16-Nov-25 08:35:01 - INFO] - RocksMusic.core.call - Starting PyTgCalls Client...
+
+[16-Nov-25 08:35:01 - INFO] - RocksMusic - Venom Music Started Successfully.
+
+Don't forget to visit @venompratap
+[16-Nov-25 08:35:56 - ERROR] - pyrogram.dispatcher - Telegram says: [400 BUTTON_USER_PRIVACY_RESTRICTED] - The privacy setting of the user specified in a [inputKeyboardButtonUserProfile](https://core.telegram.org/constructor/inputKeyboardButtonUserProfile) button do not allow creating such a button. (caused by "messages.SendMedia")
+Traceback (most recent call last):
+  File "/home/valerie/.local/lib/python3.8/site-packages/pyrogram/dispatcher.py", line 373, in handler_worker
+    await handler.callback(self.client, *args)
+  File "/home/valerie/RocksMusic/RocksMusic/utils/decorators/language.py", line 55, in wrapper
+    return await mystic(_, message, language)
+  File "/home/valerie/RocksMusic/RocksMusic/plugins/bot/start.py", line 100, in start_pm
+    await message.reply_photo(
+  File "/home/valerie/.local/lib/python3.8/site-packages/pyrogram/types/messages_and_media/message.py", line 3453, in reply_photo
+    return await self._client.send_photo(
+  File "/home/valerie/.local/lib/python3.8/site-packages/pyrogram/methods/messages/send_photo.py", line 274, in send_photo
+    r = await self.invoke(
+  File "/home/valerie/.local/lib/python3.8/site-packages/pyrogram/methods/advanced/invoke.py", line 94, in invoke
+    r = await session.invoke(
+  File "/home/valerie/.local/lib/python3.8/site-packages/pyrogram/session/session.py", line 422, in invoke
+    return await self.send(query, timeout=timeout)
+  File "/home/valerie/.local/lib/python3.8/site-packages/pyrogram/session/session.py", line 390, in send
+    RPCError.raise_it(result, type(data))
+  File "/home/valerie/.local/lib/python3.8/site-packages/pyrogram/errors/rpc_error.py", line 91, in raise_it
+    raise getattr(
+pyrogram.errors.exceptions.bad_request_400.ButtonUserPrivacyRestricted: Telegram says: [400 BUTTON_USER_PRIVACY_RESTRICTED] - The privacy setting of the user specified in a [inputKeyboardButtonUserProfile](https://core.telegram.org/constructor/inputKeyboardButtonUserProfile) button do not allow creating such a button. (caused by "messages.SendMedia")
+[16-Nov-25 08:36:25 - INFO] - RocksMusic.core.userbot - Stopping Assistants...
+[16-Nov-25 08:36:25 - INFO] - RocksMusic - Stopping Rocks Music Bot...
+[16-Nov-25 08:42:16 - INFO] - RocksMusic.core.mongo - Connecting to your Mongo Database...
+[16-Nov-25 08:42:16 - INFO] - RocksMusic.core.mongo - Connected to your Mongo Database.
+[16-Nov-25 08:42:16 - INFO] - RocksMusic.core.dir - Directories Updated.
+[16-Nov-25 08:42:16 - INFO] - RocksMusic.core.git - Git Client Found [VPS DEPLOYER]
+[16-Nov-25 08:42:16 - INFO] - RocksMusic.misc - Local Database Initialized.
+[16-Nov-25 08:42:16 - INFO] - RocksMusic.core.bot - Starting Bot...
+[16-Nov-25 08:42:16 - INFO] - RocksMusic.misc - Sudoers Loaded.
+[16-Nov-25 08:42:38 - INFO] - RocksMusic.core.bot - Music Bot Started as Vᴀʟᴇʀɪᴇ Mᴜsɪᴄ
+[16-Nov-25 08:42:38 - INFO] - RocksMusic.plugins - Successfully Imported Modules...
+[16-Nov-25 08:42:38 - INFO] - RocksMusic.core.userbot - Starting Assistants...
+[16-Nov-25 08:42:39 - INFO] - RocksMusic.core.userbot - Assistant Started as <a href=tg://user?id=5927382671>JASS</a>
+[16-Nov-25 08:42:39 - INFO] - RocksMusic.core.call - Starting PyTgCalls Client...
+
+[16-Nov-25 08:42:40 - INFO] - RocksMusic - Venom Music Started Successfully.
+
+Don't forget to visit @venompratap
+[16-Nov-25 08:42:48 - ERROR] - pyrogram.dispatcher - module 'config' has no attribute 'OWNER_USERNAME'
+Traceback (most recent call last):
+  File "/home/valerie/.local/lib/python3.8/site-packages/pyrogram/dispatcher.py", line 373, in handler_worker
+    await handler.callback(self.client, *args)
+  File "/home/valerie/RocksMusic/RocksMusic/utils/decorators/language.py", line 55, in wrapper
+    return await mystic(_, message, language)
+  File "/home/valerie/RocksMusic/RocksMusic/plugins/bot/start.py", line 91, in start_pm
+    out = private_panel(_)
+  File "/home/valerie/RocksMusic/RocksMusic/utils/inline/start.py", line 39, in private_panel
+    url=f"https://t.me/{config.OWNER_USERNAME}",
+AttributeError: module 'config' has no attribute 'OWNER_USERNAME'
+[16-Nov-25 08:42:57 - INFO] - RocksMusic.core.userbot - Stopping Assistants...
+[16-Nov-25 08:42:57 - INFO] - RocksMusic - Stopping Rocks Music Bot...
+[16-Nov-25 08:44:23 - INFO] - RocksMusic.core.mongo - Connecting to your Mongo Database...
+[16-Nov-25 08:44:23 - INFO] - RocksMusic.core.mongo - Connected to your Mongo Database.
+[16-Nov-25 08:44:23 - INFO] - RocksMusic.core.dir - Directories Updated.
+[16-Nov-25 08:44:23 - INFO] - RocksMusic.core.git - Git Client Found [VPS DEPLOYER]
+[16-Nov-25 08:44:23 - INFO] - RocksMusic.misc - Local Database Initialized.
+[16-Nov-25 08:44:23 - INFO] - RocksMusic.core.bot - Starting Bot...
+[16-Nov-25 08:44:24 - INFO] - RocksMusic.misc - Sudoers Loaded.
+[16-Nov-25 08:45:31 - INFO] - RocksMusic.core.mongo - Connecting to your Mongo Database...
+[16-Nov-25 08:45:31 - INFO] - RocksMusic.core.mongo - Connected to your Mongo Database.
+[16-Nov-25 08:45:31 - INFO] - RocksMusic.core.dir - Directories Updated.
+[16-Nov-25 08:45:31 - INFO] - RocksMusic.core.git - Git Client Found [VPS DEPLOYER]
+[16-Nov-25 08:45:31 - INFO] - RocksMusic.misc - Local Database Initialized.
+[16-Nov-25 08:45:31 - INFO] - RocksMusic.core.bot - Starting Bot...
+[16-Nov-25 08:45:31 - INFO] - RocksMusic.misc - Sudoers Loaded.
+[16-Nov-25 08:45:36 - INFO] - RocksMusic.core.bot - Music Bot Started as @DeewanaMusicBot
+[16-Nov-25 08:45:36 - INFO] - RocksMusic.plugins - Successfully Imported Modules...
+[16-Nov-25 08:45:36 - INFO] - RocksMusic.core.userbot - Starting Assistants...
+[16-Nov-25 08:45:36 - INFO] - RocksMusic.core.userbot - Assistant Started as <a href=tg://user?id=5927382671>JASS</a>
+[16-Nov-25 08:45:36 - INFO] - RocksMusic.core.call - Starting PyTgCalls Client...
+
+[16-Nov-25 08:45:37 - INFO] - RocksMusic - Venom Music Started Successfully.
+
+Don't forget to visit @venompratap
+[16-Nov-25 08:46:02 - INFO] - RocksMusic.core.userbot - Stopping Assistants...
+[16-Nov-25 08:46:02 - INFO] - RocksMusic - Stopping Rocks Music Bot...
+[16-Nov-25 08:48:01 - INFO] - RocksMusic.core.mongo - Connecting to your Mongo Database...
+[16-Nov-25 08:48:01 - INFO] - RocksMusic.core.mongo - Connected to your Mongo Database.
+[16-Nov-25 08:48:01 - INFO] - RocksMusic.core.dir - Directories Updated.
+[16-Nov-25 08:48:01 - INFO] - RocksMusic.core.git - Git Client Found [VPS DEPLOYER]
+[16-Nov-25 08:48:01 - INFO] - RocksMusic.misc - Local Database Initialized.
+[16-Nov-25 08:48:01 - INFO] - RocksMusic.core.bot - Starting Bot...
+[16-Nov-25 08:48:02 - INFO] - RocksMusic.misc - Sudoers Loaded.
+[16-Nov-25 08:48:06 - INFO] - RocksMusic.core.bot - Music Bot Started as Vᴀʟᴇʀɪᴇ Mᴜsɪᴄ
+[16-Nov-25 08:48:06 - INFO] - RocksMusic.plugins - Successfully Imported Modules...
+[16-Nov-25 08:48:06 - INFO] - RocksMusic.core.userbot - Starting Assistants...
+[16-Nov-25 08:48:07 - INFO] - RocksMusic.core.userbot - Assistant Started as <a href=tg://user?id=1844758559>Vᴀʟᴇʀɪᴇ Ai • 🎧 /&gt;</a>
+[16-Nov-25 08:48:07 - INFO] - RocksMusic.core.call - Starting PyTgCalls Client...
+
+[16-Nov-25 08:48:08 - INFO] - RocksMusic - Venom Music Started Successfully.
+
+Don't forget to visit @venompratap
+[16-Nov-25 08:49:28 - INFO] - RocksMusic.core.userbot - Stopping Assistants...
+[16-Nov-25 08:49:28 - INFO] - RocksMusic - Stopping Rocks Music Bot...
+[16-Nov-25 08:51:34 - INFO] - RocksMusic.core.mongo - Connecting to your Mongo Database...
+[16-Nov-25 08:51:34 - INFO] - RocksMusic.core.mongo - Connected to your Mongo Database.
+[16-Nov-25 08:51:34 - INFO] - RocksMusic.core.dir - Directories Updated.
+[16-Nov-25 08:51:34 - INFO] - RocksMusic.core.git - Git Client Found [VPS DEPLOYER]
+[16-Nov-25 08:51:34 - INFO] - RocksMusic.misc - Local Database Initialized.
+[16-Nov-25 08:51:34 - INFO] - RocksMusic.core.bot - Starting Bot...
+[16-Nov-25 08:51:35 - INFO] - RocksMusic.misc - Sudoers Loaded.
+[16-Nov-25 08:51:40 - INFO] - RocksMusic.core.bot - Music Bot Started as @DeewanaMusicBot
+[16-Nov-25 08:51:40 - INFO] - RocksMusic.plugins - Successfully Imported Modules...
+[16-Nov-25 08:51:40 - INFO] - RocksMusic.core.userbot - Starting Assistants...
+[16-Nov-25 08:51:40 - INFO] - RocksMusic.core.userbot - Assistant Started as <a href=tg://user?id=5927382671>JASS</a>
+[16-Nov-25 08:51:40 - INFO] - RocksMusic.core.call - Starting PyTgCalls Client...
+
+[16-Nov-25 08:51:41 - INFO] - RocksMusic - Venom Music Started Successfully.
+
+Don't forget to visit @venompratap
+[16-Nov-25 08:51:52 - INFO] - RocksMusic.core.userbot - Stopping Assistants...
+[16-Nov-25 08:51:52 - INFO] - RocksMusic - Stopping Rocks Music Bot...
