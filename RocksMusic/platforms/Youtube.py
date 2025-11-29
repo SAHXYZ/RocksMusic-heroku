@@ -3,14 +3,16 @@ import os
 import re
 import json
 from typing import Union
+
 import requests
 import yt_dlp
 from pyrogram.enums import MessageEntityType
 from pyrogram.types import Message
 from youtubesearchpython.__future__ import VideosSearch
+
 from RocksMusic.utils.database import is_on_off
 from RocksMusic.utils.formatters import time_to_seconds
-import os
+
 import glob
 import random
 import logging
@@ -19,22 +21,207 @@ import config
 from config import API_URL, API_KEY
 
 
-def cookie_txt_file():
-    cookie_dir = f"{os.getcwd()}/cookies"
-    cookies_files = [f for f in os.listdir(cookie_dir) if f.endswith(".txt")]
+# =========================
+# TgMusicBot-style Cookies
+# =========================
 
-    cookie_file = os.path.join(cookie_dir, random.choice(cookies_files))
-    return cookie_file
+COOKIES_FILES = None  # cached list of cookies file paths
+
+
+def _init_cookies_dir() -> str:
+    """
+    Ensure the cookies directory exists and return its path.
+    We use ./cookies (same as your previous code).
+    """
+    cookie_dir = os.path.join(os.getcwd(), "cookies")
+    try:
+        os.makedirs(cookie_dir, exist_ok=True)
+    except Exception as e:
+        logging.error(f"Failed to create cookies directory {cookie_dir}: {e}")
+    return cookie_dir
+
+
+def _fetch_content(url: str) -> str:
+    """
+    Mirror the Go fetchContent(url) logic:
+
+    - Treat URLs as Pastebin or Batbin links.
+    - Convert to raw endpoints:
+        pastebin.com -> https://pastebin.com/raw/<id>
+        batbin.me    -> https://batbin.me/raw/<id>
+    - Download and return text content.
+    """
+    url = url.strip().strip("/")
+    if not url:
+        raise ValueError("Empty cookie URL")
+
+    parts = url.split("/")
+    id_part = parts[-1]
+
+    if "pastebin.com" in url:
+        raw_url = f"https://pastebin.com/raw/{id_part}"
+    else:
+        # Default to batbin raw as in your Go code (batbin.me/raw/<id>)
+        raw_url = f"https://batbin.me/raw/{id_part}"
+
+    try:
+        resp = requests.get(raw_url, timeout=20)
+    except Exception as e:
+        raise RuntimeError(f"Failed to GET {raw_url}: {e}") from e
+
+    if resp.status_code != 200:
+        raise RuntimeError(f"Unexpected status {resp.status_code} for {raw_url}")
+
+    return resp.text
+
+
+def _save_content(url: str, content: str, cookie_dir: str) -> str:
+    """
+    Mirror Go saveContent(url, content):
+
+    - Use last path segment as filename.
+    - If empty, build a fallback name from the URL.
+    - Always ensure .txt at the end.
+    - Save into cookie_dir and return full path.
+    """
+    url_stripped = url.strip().strip("/")
+    parts = url_stripped.split("/")
+    filename = parts[-1] if parts and parts[-1] else ""
+
+    if not filename:
+        # fallback similar to Go: "file_" + sanitized URL
+        safe = url_stripped.replace("/", "_").split("?")[0].replace("#", "")
+        filename = f"file_{safe}"
+
+    if not filename.endswith(".txt"):
+        filename += ".txt"
+
+    file_path = os.path.join(cookie_dir, filename)
+    try:
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(content)
+    except Exception as e:
+        raise RuntimeError(f"Failed to write cookies file {file_path}: {e}") from e
+
+    return file_path
+
+
+def _save_all_cookies(urls):
+    """
+    Python version of Go's saveAllCookies(urls []string):
+    - For each URL, fetch raw content and save as .txt in cookies dir.
+    - Return list of file paths that were successfully saved.
+    """
+    cookie_dir = _init_cookies_dir()
+    saved_paths = []
+    for url in urls:
+        if not url:
+            continue
+        try:
+            text = _fetch_content(url)
+        except Exception as e:
+            logging.error(f"Error fetching cookies from {url}: {e}")
+            continue
+
+        try:
+            path = _save_content(url, text, cookie_dir)
+        except Exception as e:
+            logging.error(f"Error saving cookies from {url}: {e}")
+            continue
+
+        saved_paths.append(path)
+
+    return saved_paths
+
+
+def _load_cookies_files():
+    """
+    Load cookies files from:
+
+    1) Remote URLs defined via COOKIES_URL (converted to COOKIES_URLS in config.py),
+       treated as Pastebin/Batbin IDs (TgMusicBot style).
+    2) Any existing *.txt files under ./cookies.
+
+    Always returns at least one path by creating an empty cookies.txt
+    if no files exist.
+    """
+    global COOKIES_FILES
+
+    cookie_dir = _init_cookies_dir()
+    files = []
+
+    # 1) Download from URLs (TgMusicBot-style COOKIES_URL)
+    urls = getattr(config, "COOKIES_URLS", []) or []
+    if urls:
+        saved = _save_all_cookies(urls)
+        files.extend(saved)
+
+    # 2) Collect any existing *.txt cookies under ./cookies (backwards compat)
+    try:
+        for fname in os.listdir(cookie_dir):
+            if fname.endswith(".txt"):
+                full = os.path.join(cookie_dir, fname)
+                if os.path.isfile(full) and full not in files:
+                    files.append(full)
+    except FileNotFoundError:
+        pass
+
+    # If still no cookies, create one empty cookies.txt so yt-dlp always gets a path
+    if not files:
+        logging.warning(
+            "No cookies .txt files found in ./cookies. "
+            "You can configure COOKIES_URL to point to one or more pastebin/batbin IDs."
+        )
+        empty_path = os.path.join(cookie_dir, "cookies.txt")
+        try:
+            with open(empty_path, "a", encoding="utf-8"):
+                pass
+            files.append(empty_path)
+        except Exception as e:
+            logging.error(f"Failed to create empty cookies.txt at {empty_path}: {e}")
+
+    COOKIES_FILES = files
+    return COOKIES_FILES
+
+
+def cookie_txt_file():
+    """
+    Return a random cookies.txt file path for yt-dlp usage.
+
+    This is the Python equivalent of TgMusicBot's cookies system:
+    - Uses COOKIES_URL env (split into COOKIES_URLS).
+    - Downloads from Pastebin/Batbin as raw text.
+    - Saves into ./cookies as .txt files.
+    - Randomly selects one for each call.
+
+    IMPORTANT: always returns a valid path (file exists).
+    """
+    global COOKIES_FILES
+
+    if COOKIES_FILES is None:
+        COOKIES_FILES = _load_cookies_files()
+
+    if not COOKIES_FILES:
+        # Failsafe: try again to ensure at least one file exists.
+        COOKIES_FILES = _load_cookies_files()
+
+    # At this point, COOKIES_FILES should contain at least one path.
+    return random.choice(COOKIES_FILES)
+
+
+# =========================
+# Rest of original logic
+# =========================
 
 
 async def download_song(link: str):
-    video_id = link.split('v=')[-1].split('&')[0]
+    video_id = link.split("v=")[-1].split("&")[0]
 
     download_folder = "downloads"
     for ext in ["mp3", "m4a", "webm"]:
         file_path = f"{download_folder}/{video_id}.{ext}"
         if os.path.exists(file_path):
-            #print(f"File already exists: {file_path}")
+            # print(f"File already exists: {file_path}")
             return file_path
 
     song_url = f"{API_URL}/song/{video_id}?api={API_KEY}"
@@ -43,19 +230,27 @@ async def download_song(link: str):
             try:
                 async with session.get(song_url) as response:
                     if response.status != 200:
-                        raise Exception(f"API request failed with status code {response.status}")
+                        raise Exception(
+                            f"API request failed with status code {response.status}"
+                        )
                     data = await response.json()
                     status = data.get("status", "").lower()
                     if status == "downloading":
                         await asyncio.sleep(2)
                         continue
                     elif status == "error":
-                        error_msg = data.get("error") or data.get("message") or "Unknown error"
+                        error_msg = (
+                            data.get("error")
+                            or data.get("message")
+                            or "Unknown error"
+                        )
                         raise Exception(f"API error: {error_msg}")
                     elif status == "done":
                         download_url = data.get("link")
                         if not download_url:
-                            raise Exception("API response did not provide a download URL.")
+                            raise Exception(
+                                "API response did not provide a download URL."
+                            )
                         break
                     else:
                         raise Exception(f"Unexpected status '{status}' from API.")
@@ -72,7 +267,7 @@ async def download_song(link: str):
             file_path = os.path.join(download_folder, file_name)
 
             async with session.get(download_url) as file_response:
-                with open(file_path, 'wb') as f:
+                with open(file_path, "wb") as f:
                     while True:
                         chunk = await file_response.content.read(8192)
                         if not chunk:
@@ -87,40 +282,43 @@ async def download_song(link: str):
             return None
     return None
 
+
 async def check_file_size(link):
     async def get_format_info(link):
         proc = await asyncio.create_subprocess_exec(
             "yt-dlp",
-            "--cookies", cookie_txt_file(),
+            "--cookies",
+            cookie_txt_file(),
             "-J",
             link,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            stderr=asyncio.subprocess.PIPE,
         )
         stdout, stderr = await proc.communicate()
         if proc.returncode != 0:
-            print(f'Error:\n{stderr.decode()}')
+            print(f"Error:\n{stderr.decode()}")
             return None
         return json.loads(stdout.decode())
 
     def parse_size(formats):
         total_size = 0
         for format in formats:
-            if 'filesize' in format:
-                total_size += format['filesize']
+            if "filesize" in format:
+                total_size += format["filesize"]
         return total_size
 
     info = await get_format_info(link)
     if info is None:
         return None
 
-    formats = info.get('formats', [])
+    formats = info.get("formats", [])
     if not formats:
         print("No formats found.")
         return None
 
     total_size = parse_size(formats)
     return total_size
+
 
 async def shell_cmd(cmd):
     proc = await asyncio.create_subprocess_shell(
@@ -231,7 +429,8 @@ class YouTubeAPI:
             link = link.split("&")[0]
         proc = await asyncio.create_subprocess_exec(
             "yt-dlp",
-            "--cookies",cookie_txt_file(),
+            "--cookies",
+            cookie_txt_file(),
             "-g",
             "-f",
             "best[height<=?720][width<=?1280]",
@@ -251,14 +450,15 @@ class YouTubeAPI:
         if "&" in link:
             link = link.split("&")[0]
         playlist = await shell_cmd(
-            f"yt-dlp -i --get-id --flat-playlist --cookies {cookie_txt_file()} --playlist-end {limit} --skip-download {link}"
+            f"yt-dlp -i --get-id --flat-playlist --cookies {cookie_txt_file()} "
+            f"--playlist-end {limit} --skip-download {link}"
         )
         try:
             result = playlist.split("\n")
             for key in result:
                 if key == "":
                     result.remove(key)
-        except:
+        except Exception:
             result = []
         return result
 
@@ -288,7 +488,7 @@ class YouTubeAPI:
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
-        ytdl_opts = {"quiet": True, "cookiefile" : cookie_txt_file()}
+        ytdl_opts = {"quiet": True, "cookiefile": cookie_txt_file()}
         ydl = yt_dlp.YoutubeDL(ytdl_opts)
         with ydl:
             formats_available = []
@@ -296,16 +496,16 @@ class YouTubeAPI:
             for format in r["formats"]:
                 try:
                     str(format["format"])
-                except:
+                except Exception:
                     continue
-                if not "dash" in str(format["format"]).lower():
+                if "dash" not in str(format["format"]).lower():
                     try:
                         format["format"]
                         format["filesize"]
                         format["format_id"]
                         format["ext"]
                         format["format_note"]
-                    except:
+                    except Exception:
                         continue
                     formats_available.append(
                         {
@@ -351,6 +551,7 @@ class YouTubeAPI:
         if videoid:
             link = self.base + link
         loop = asyncio.get_running_loop()
+
         def audio_dl():
             ydl_optssx = {
                 "format": "bestaudio/best",
@@ -358,7 +559,7 @@ class YouTubeAPI:
                 "geo_bypass": True,
                 "nocheckcertificate": True,
                 "quiet": True,
-                "cookiefile" : cookie_txt_file(),
+                "cookiefile": cookie_txt_file(),
                 "no_warnings": True,
             }
             x = yt_dlp.YoutubeDL(ydl_optssx)
@@ -371,12 +572,13 @@ class YouTubeAPI:
 
         def video_dl():
             ydl_optssx = {
-                "format": "(bestvideo[height<=?720][width<=?1280][ext=mp4])+(bestaudio[ext=m4a])",
+                "format": "(bestvideo[height<=?720][width<=?1280][ext=mp4])"
+                "+(bestaudio[ext=m4a])",
                 "outtmpl": "downloads/%(id)s.%(ext)s",
                 "geo_bypass": True,
                 "nocheckcertificate": True,
                 "quiet": True,
-                "cookiefile" : cookie_txt_file(),
+                "cookiefile": cookie_txt_file(),
                 "no_warnings": True,
             }
             x = yt_dlp.YoutubeDL(ydl_optssx)
@@ -397,7 +599,7 @@ class YouTubeAPI:
                 "nocheckcertificate": True,
                 "quiet": True,
                 "no_warnings": True,
-                "cookiefile" : cookie_txt_file(),
+                "cookiefile": cookie_txt_file(),
                 "prefer_ffmpeg": True,
                 "merge_output_format": "mp4",
             }
@@ -413,7 +615,7 @@ class YouTubeAPI:
                 "nocheckcertificate": True,
                 "quiet": True,
                 "no_warnings": True,
-                "cookiefile" : cookie_txt_file(),
+                "cookiefile": cookie_txt_file(),
                 "prefer_ffmpeg": True,
                 "postprocessors": [
                     {
@@ -441,7 +643,8 @@ class YouTubeAPI:
             else:
                 proc = await asyncio.create_subprocess_exec(
                     "yt-dlp",
-                    "--cookies",cookie_txt_file(),
+                    "--cookies",
+                    cookie_txt_file(),
                     "-g",
                     "-f",
                     "best[height<=?720][width<=?1280]",
@@ -454,18 +657,19 @@ class YouTubeAPI:
                     downloaded_file = stdout.decode().split("\n")[0]
                     direct = False
                 else:
-                   file_size = await check_file_size(link)
-                   if not file_size:
-                     print("None file Size")
-                     return
-                   total_size_mb = file_size / (1024 * 1024)
-                   if total_size_mb > 250:
-                     print(f"File size {total_size_mb:.2f} MB exceeds the 100MB limit.")
-                     return None
-                   direct = True
-                   downloaded_file = await loop.run_in_executor(None, video_dl)
+                    file_size = await check_file_size(link)
+                    if not file_size:
+                        print("None file Size")
+                        return
+                    total_size_mb = file_size / (1024 * 1024)
+                    if total_size_mb > 250:
+                        print(
+                            f"File size {total_size_mb:.2f} MB exceeds the 100MB limit."
+                        )
+                        return None
+                    direct = True
+                    downloaded_file = await loop.run_in_executor(None, video_dl)
         else:
             direct = True
             downloaded_file = await download_song(link)
         return downloaded_file, direct
-
