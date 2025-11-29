@@ -41,9 +41,8 @@ API_KEY = getenv("API_KEY", None)  # YouTube song API key (optional)
 COOKIES_URL = getenv("COOKIES_URL", "")
 COOKIES_URLS = []
 if COOKIES_URL:
-    # Replace commas with spaces, then split on any whitespace
     parts = re.split(r"[\s,]+", COOKIES_URL.strip())
-    COOKIES_URLS = [u for u in parts if u]
+    COOKIES_URLS = [p for p in parts if p]
 
 UPSTREAM_REPO = getenv(
     "UPSTREAM_REPO",
