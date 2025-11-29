@@ -32,8 +32,18 @@ HEROKU_APP_NAME = getenv("HEROKU_APP_NAME")
 # Get it from http://dashboard.heroku.com/account
 HEROKU_API_KEY = getenv("HEROKU_API_KEY")
 
-API_URL = getenv("API_URL","https://api.thequickearn.xyz") #youtube song url
-API_KEY = getenv("API_KEY", None) # youtube song api key, generate free key or buy paid plan from panel.thequickearn.xyz
+API_URL = getenv("API_URL", "https://api.thequickearn.xyz")  # YouTube song API base URL
+API_KEY = getenv("API_KEY", None)  # YouTube song API key (optional)
+
+# COOKIES_URL can contain one or multiple URLs separated by spaces or commas,
+# similar to TgMusicBot. Each URL should point to a text cookies file exported
+# from your browser (Netscape cookie format).
+COOKIES_URL = getenv("COOKIES_URL", "")
+COOKIES_URLS = []
+if COOKIES_URL:
+    # Replace commas with spaces, then split on any whitespace
+    parts = re.split(r"[\s,]+", COOKIES_URL.strip())
+    COOKIES_URLS = [u for u in parts if u]
 
 UPSTREAM_REPO = getenv(
     "UPSTREAM_REPO",
