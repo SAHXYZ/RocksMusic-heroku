@@ -13,12 +13,11 @@ from youtubesearchpython.__future__ import VideosSearch
 
 logging.basicConfig(level=logging.INFO)
 
-
-# tape window coordinates (inside neon cassette)
-TAPE_X1 = 350
-TAPE_Y1 = 140
-TAPE_X2 = 930
-TAPE_Y2 = 500
+# Full cassette area (OPTION C)
+TAPE_X1 = 270
+TAPE_Y1 = 80
+TAPE_X2 = 1010
+TAPE_Y2 = 570
 
 
 def resize_to_fit(w, h, img):
@@ -75,59 +74,54 @@ async def gen_thumb(videoid: str):
 
         youtube_thumb = Image.open(filepath).convert("RGBA")
 
-        # LOAD YOUR TEMPLATE
+        # LOAD FINAL TEMPLATE
         template = Image.open("RocksMusic/assets/neon_tape.png").convert("RGBA")
 
-        # Extract tape area size
+        # Resize YT thumb to cassette window
         tape_w = TAPE_X2 - TAPE_X1
         tape_h = TAPE_Y2 - TAPE_Y1
-
-        # Resize YT thumb into cassette area
         resized_thumb = resize_to_fit(tape_w, tape_h, youtube_thumb)
 
-        # Paste the thumbnail inside the tape window
+        # Paste thumbnail into cassette
         template.paste(resized_thumb, (TAPE_X1, TAPE_Y1), resized_thumb)
 
         draw = ImageDraw.Draw(template)
 
-        # Load fonts
+        # Text fonts
         arial = ImageFont.truetype("RocksMusic/assets/font2.ttf", 30)
-        font = ImageFont.truetype("RocksMusic/assets/font.ttf", 30)
-        title_font = ImageFont.truetype("RocksMusic/assets/font3.ttf", 45)
+        main_font = ImageFont.truetype("RocksMusic/assets/font3.ttf", 45)
 
-        # TEXT POSITIONS
+        # Title / channel text
         TITLE_X = 80
-        TITLE_Y = 540
+        TITLE_Y = 620
 
-        title1 = truncate(title)
-        draw.text((TITLE_X, TITLE_Y), title1[0], font=title_font, fill="white")
-        draw.text((TITLE_X, TITLE_Y + 50), title1[1], font=title_font, fill="white")
+        title_lines = truncate(title)
+        draw.text((TITLE_X, TITLE_Y), title_lines[0], font=main_font, fill="white")
+        draw.text((TITLE_X, TITLE_Y + 55), title_lines[1], font=main_font, fill="white")
 
         draw.text((TITLE_X, TITLE_Y + 120), f"{channel}  |  {views}", font=arial, fill="white")
 
         # Progress bar
         BAR_X = 80
-        BAR_Y = 650
+        BAR_Y = 700
         BAR_LEN = 1120
 
-        # Color progress
         if duration != "Live":
             pct = random.uniform(0.15, 0.85)
-            fill_len = int(BAR_LEN * pct)
-            draw.line((BAR_X, BAR_Y, BAR_X + fill_len, BAR_Y), fill=(255, 100, 150), width=10)
-            draw.line((BAR_X + fill_len, BAR_Y, BAR_X + BAR_LEN, BAR_Y), fill="white", width=8)
+            filled = int(BAR_LEN * pct)
+            draw.line((BAR_X, BAR_Y, BAR_X + filled, BAR_Y), fill=(255, 120, 190), width=10)
+            draw.line((BAR_X + filled, BAR_Y, BAR_X + BAR_LEN, BAR_Y), fill="white", width=8)
         else:
-            draw.line((BAR_X, BAR_Y, BAR_X + BAR_LEN), fill="red", width=10)
+            draw.line((BAR_X, BAR_Y, BAR_X + BAR_LEN, BAR_Y), fill="red", width=10)
 
         draw.text((BAR_X, BAR_Y + 20), "00:00", font=arial, fill="white")
         draw.text((1170, BAR_Y + 20), duration, font=arial, fill="white")
 
-        # PLAY ICONS
+        # Play icons
         play_icons = Image.open("RocksMusic/assets/play_icons.png").convert("RGBA")
         play_icons = play_icons.resize((580, 62))
-        template.paste(play_icons, (450, 720), play_icons)
+        template.paste(play_icons, (450, 760), play_icons)
 
-        # CLEANUP
         os.remove(filepath)
 
         final_path = f"cache/{videoid}_v5.png"
