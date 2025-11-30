@@ -5,6 +5,7 @@ import random
 import logging
 import os
 import re
+import traceback
 import aiofiles
 import aiohttp
 from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
@@ -12,237 +13,127 @@ from youtubesearchpython.__future__ import VideosSearch
 
 logging.basicConfig(level=logging.INFO)
 
-def changeImageSize(maxWidth, maxHeight, image):
-    widthRatio = maxWidth / image.size[0]
-    heightRatio = maxHeight / image.size[1]
-    newWidth = int(widthRatio * image.size[0])
-    newHeight = int(heightRatio * image.size[1])
-    newImage = image.resize((newWidth, newHeight))
-    return newImage
+
+# tape window coordinates (inside neon cassette)
+TAPE_X1 = 350
+TAPE_Y1 = 140
+TAPE_X2 = 930
+TAPE_Y2 = 500
+
+
+def resize_to_fit(w, h, img):
+    return img.resize((w, h), Image.LANCZOS)
+
 
 def truncate(text):
-    list = text.split(" ")
-    text1 = ""
-    text2 = ""    
-    for i in list:
-        if len(text1) + len(i) < 30:        
-            text1 += " " + i
-        elif len(text2) + len(i) < 30:       
-            text2 += " " + i
+    words = text.split(" ")
+    t1 = ""
+    t2 = ""
+    for w in words:
+        if len(t1) + len(w) < 30:
+            t1 += " " + w
+        elif len(t2) + len(w) < 30:
+            t2 += " " + w
+    return [t1.strip(), t2.strip()]
 
-    text1 = text1.strip()
-    text2 = text2.strip()     
-    return [text1,text2]
-
-def random_color():
-    return (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
-
-def generate_gradient(width, height, start_color, end_color):
-    base = Image.new('RGBA', (width, height), start_color)
-    top = Image.new('RGBA', (width, height), end_color)
-    mask = Image.new('L', (width, height))
-    mask_data = []
-    for y in range(height):
-        mask_data.extend([int(60 * (y / height))] * width)
-    mask.putdata(mask_data)
-    base.paste(top, (0, 0), mask)
-    return base
-
-def add_border(image, border_width, border_color):
-    width, height = image.size
-    new_width = width + 2 * border_width
-    new_height = height + 2 * border_width
-    new_image = Image.new("RGBA", (new_width, new_height), border_color)
-    new_image.paste(image, (border_width, border_width))
-    return new_image
-
-def crop_center_circle(img, output_size, border, border_color, crop_scale=1.5):
-    half_the_width = img.size[0] / 2
-    half_the_height = img.size[1] / 2
-    larger_size = int(output_size * crop_scale)
-    img = img.crop(
-        (
-            half_the_width - larger_size/2,
-            half_the_height - larger_size/2,
-            half_the_width + larger_size/2,
-            half_the_height + larger_size/2
-        )
-    )
-    
-    img = img.resize((output_size - 2*border, output_size - 2*border))
-    
-    
-    final_img = Image.new("RGBA", (output_size, output_size), border_color)
-    
-    
-    mask_main = Image.new("L", (output_size - 2*border, output_size - 2*border), 0)
-    draw_main = ImageDraw.Draw(mask_main)
-    draw_main.ellipse((0, 0, output_size - 2*border, output_size - 2*border), fill=255)
-    
-    final_img.paste(img, (border, border), mask_main)
-    
-    
-    mask_border = Image.new("L", (output_size, output_size), 0)
-    draw_border = ImageDraw.Draw(mask_border)
-    draw_border.ellipse((0, 0, output_size, output_size), fill=255)
-    
-    result = Image.composite(final_img, Image.new("RGBA", final_img.size, (0, 0, 0, 0)), mask_border)
-    
-    return result
-
-def draw_text_with_shadow(background, draw, position, text, font, fill, shadow_offset=(3, 3), shadow_blur=5):
-    
-    shadow = Image.new('RGBA', background.size, (0, 0, 0, 0))
-    shadow_draw = ImageDraw.Draw(shadow)
-    
-    
-    shadow_draw.text(position, text, font=font, fill="black")
-    
-    
-    shadow = shadow.filter(ImageFilter.GaussianBlur(radius=shadow_blur))
-    
-    
-    background.paste(shadow, shadow_offset, shadow)
-    
-    
-    draw.text(position, text, font=font, fill=fill)
 
 async def gen_thumb(videoid: str):
     try:
-        if os.path.isfile(f"cache/{videoid}_v4.png"):
-            return f"cache/{videoid}_v4.png"
+        if os.path.isfile(f"cache/{videoid}_v5.png"):
+            return f"cache/{videoid}_v5.png"
 
         url = f"https://www.youtube.com/watch?v={videoid}"
         results = VideosSearch(url, limit=1)
+
         for result in (await results.next())["result"]:
             title = result.get("title")
             if title:
                 title = re.sub("\W+", " ", title).title()
             else:
                 title = "Unsupported Title"
-            duration = result.get("duration")
-            if not duration:
-                duration = "Live"
-            thumbnail_data = result.get("thumbnails")
-            if thumbnail_data:
-                thumbnail = thumbnail_data[0]["url"].split("?")[0]
-            else:
-                thumbnail = None
-            views_data = result.get("viewCount")
-            if views_data:
-                views = views_data.get("short")
-                if not views:
-                    views = "Unknown Views"
-            else:
-                views = "Unknown Views"
-            channel_data = result.get("channel")
-            if channel_data:
-                channel = channel_data.get("name")
-                if not channel:
-                    channel = "Unknown Channel"
-            else:
-                channel = "Unknown Channel"
 
-        
+            duration = result.get("duration") or "Live"
+
+            thumbnail_data = result.get("thumbnails")
+            thumbnail = thumbnail_data[0]["url"].split("?")[0] if thumbnail_data else None
+
+            views_data = result.get("viewCount")
+            views = views_data.get("short") if views_data else "Unknown Views"
+
+            channel_data = result.get("channel")
+            channel = channel_data.get("name") if channel_data else "Unknown Channel"
+
+        # DOWNLOAD YOUTUBE THUMBNAIL
         async with aiohttp.ClientSession() as session:
             async with session.get(thumbnail) as resp:
-        
                 content = await resp.read()
-                if resp.status == 200:
-                    content_type = resp.headers.get('Content-Type')
-                    if 'jpeg' in content_type or 'jpg' in content_type:
-                        extension = 'jpg'
-                    elif 'png' in content_type:
-                        extension = 'png'
-                    else:
-                        logging.error(f"Unexpected content type: {content_type}")
-                        return None
+                if resp.status != 200:
+                    return None
+                filepath = f"cache/thumb{videoid}.png"
+                async with aiofiles.open(filepath, "wb") as f:
+                    await f.write(content)
 
-                    filepath = f"cache/thumb{videoid}.png"
-                    f = await aiofiles.open(filepath, mode="wb")
-                    await f.write(await resp.read())
-                    await f.close()
-                    # os.system(f"file {filepath}")
-                    
-        
-        image_path = f"cache/thumb{videoid}.png"
-        youtube = Image.open(image_path)
-        image1 = changeImageSize(1280, 720, youtube)
-        
-        image2 = image1.convert("RGBA")
-        background = image2.filter(filter=ImageFilter.BoxBlur(20))
-        enhancer = ImageEnhance.Brightness(background)
-        background = enhancer.enhance(0.6)
+        youtube_thumb = Image.open(filepath).convert("RGBA")
 
-        
-        start_gradient_color = random_color()
-        end_gradient_color = random_color()
-        gradient_image = generate_gradient(1280, 720, start_gradient_color, end_gradient_color)
-        background = Image.blend(background, gradient_image, alpha=0.2)
-        
-        draw = ImageDraw.Draw(background)
+        # LOAD YOUR TEMPLATE
+        template = Image.open("RocksMusic/assets/neon_tape.png").convert("RGBA")
+
+        # Extract tape area size
+        tape_w = TAPE_X2 - TAPE_X1
+        tape_h = TAPE_Y2 - TAPE_Y1
+
+        # Resize YT thumb into cassette area
+        resized_thumb = resize_to_fit(tape_w, tape_h, youtube_thumb)
+
+        # Paste the thumbnail inside the tape window
+        template.paste(resized_thumb, (TAPE_X1, TAPE_Y1), resized_thumb)
+
+        draw = ImageDraw.Draw(template)
+
+        # Load fonts
         arial = ImageFont.truetype("RocksMusic/assets/font2.ttf", 30)
         font = ImageFont.truetype("RocksMusic/assets/font.ttf", 30)
         title_font = ImageFont.truetype("RocksMusic/assets/font3.ttf", 45)
 
+        # TEXT POSITIONS
+        TITLE_X = 80
+        TITLE_Y = 540
 
-        circle_thumbnail = crop_center_circle(youtube, 400, 20, start_gradient_color)
-        circle_thumbnail = circle_thumbnail.resize((400, 400))
-        circle_position = (120, 160)
-        background.paste(circle_thumbnail, circle_position, circle_thumbnail)
-
-        text_x_position = 565
         title1 = truncate(title)
-        draw_text_with_shadow(background, draw, (text_x_position, 180), title1[0], title_font, (255, 255, 255))
-        draw_text_with_shadow(background, draw, (text_x_position, 230), title1[1], title_font, (255, 255, 255))
-        draw_text_with_shadow(background, draw, (text_x_position, 320), f"{channel}  |  {views[:23]}", arial, (255, 255, 255))
+        draw.text((TITLE_X, TITLE_Y), title1[0], font=title_font, fill="white")
+        draw.text((TITLE_X, TITLE_Y + 50), title1[1], font=title_font, fill="white")
 
+        draw.text((TITLE_X, TITLE_Y + 120), f"{channel}  |  {views}", font=arial, fill="white")
 
-        line_length = 580  
-        line_color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+        # Progress bar
+        BAR_X = 80
+        BAR_Y = 650
+        BAR_LEN = 1120
 
+        # Color progress
         if duration != "Live":
-            color_line_percentage = random.uniform(0.15, 0.85)
-            color_line_length = int(line_length * color_line_percentage)
-            white_line_length = line_length - color_line_length
-
-            start_point_color = (text_x_position, 380)
-            end_point_color = (text_x_position + color_line_length, 380)
-            draw.line([start_point_color, end_point_color], fill=line_color, width=9)
-        
-            start_point_white = (text_x_position + color_line_length, 380)
-            end_point_white = (text_x_position + line_length, 380)
-            draw.line([start_point_white, end_point_white], fill="white", width=8)
-        
-            circle_radius = 10 
-            circle_position = (end_point_color[0], end_point_color[1])
-            draw.ellipse([circle_position[0] - circle_radius, circle_position[1] - circle_radius,
-                      circle_position[0] + circle_radius, circle_position[1] + circle_radius], fill=line_color)
-    
+            pct = random.uniform(0.15, 0.85)
+            fill_len = int(BAR_LEN * pct)
+            draw.line((BAR_X, BAR_Y, BAR_X + fill_len, BAR_Y), fill=(255, 100, 150), width=10)
+            draw.line((BAR_X + fill_len, BAR_Y, BAR_X + BAR_LEN, BAR_Y), fill="white", width=8)
         else:
-            line_color = (255, 0, 0)
-            start_point_color = (text_x_position, 380)
-            end_point_color = (text_x_position + line_length, 380)
-            draw.line([start_point_color, end_point_color], fill=line_color, width=9)
-        
-            circle_radius = 10 
-            circle_position = (end_point_color[0], end_point_color[1])
-            draw.ellipse([circle_position[0] - circle_radius, circle_position[1] - circle_radius,
-                          circle_position[0] + circle_radius, circle_position[1] + circle_radius], fill=line_color)
+            draw.line((BAR_X, BAR_Y, BAR_X + BAR_LEN), fill="red", width=10)
 
-        draw_text_with_shadow(background, draw, (text_x_position, 400), "00:00", arial, (255, 255, 255))
-        draw_text_with_shadow(background, draw, (1080, 400), duration, arial, (255, 255, 255))
-        
-        play_icons = Image.open("RocksMusic/assets/play_icons.png")
+        draw.text((BAR_X, BAR_Y + 20), "00:00", font=arial, fill="white")
+        draw.text((1170, BAR_Y + 20), duration, font=arial, fill="white")
+
+        # PLAY ICONS
+        play_icons = Image.open("RocksMusic/assets/play_icons.png").convert("RGBA")
         play_icons = play_icons.resize((580, 62))
-        background.paste(play_icons, (text_x_position, 450), play_icons)
+        template.paste(play_icons, (450, 720), play_icons)
 
-        os.remove(f"cache/thumb{videoid}.png")
+        # CLEANUP
+        os.remove(filepath)
 
-        background_path = f"cache/{videoid}_v4.png"
-        background.save(background_path)
-        
-        return background_path
+        final_path = f"cache/{videoid}_v5.png"
+        template.save(final_path)
+
+        return final_path
 
     except Exception as e:
         logging.error(f"Error generating thumbnail for video {videoid}: {e}")
