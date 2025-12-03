@@ -98,7 +98,7 @@ START_IMG_URL = getenv(
     "START_IMG_URL", "https://files.catbox.moe/zykdtr.jpg"
 )
 PING_IMG_URL = getenv(
-    "PING_IMG_URL", "https://files.catbox.moe/fa1xas.jpg"
+    "PING_IMG_URL", "https://files.catbox.moe/zopl2r.mp4"
 )
 PLAYLIST_IMG_URL = "https://files.catbox.moe/pfjgmf.jpg"
 STATS_IMG_URL = "https://files.catbox.moe/st6utj.jpg"
