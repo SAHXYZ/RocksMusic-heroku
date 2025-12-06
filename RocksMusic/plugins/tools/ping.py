@@ -8,7 +8,7 @@ from RocksMusic.core.call import Rocks
 from RocksMusic.utils import bot_sys_stats
 from RocksMusic.utils.decorators.language import language
 from RocksMusic.utils.inline import supp_markup
-from config import BANNED_USERS, PING_IMG_URL
+from config import BANNED_USERS
 
 
 @app.on_message(filters.command(["ping", "alive"]) & ~BANNED_USERS)
@@ -16,18 +16,20 @@ from config import BANNED_USERS, PING_IMG_URL
 async def ping_com(client, message: Message, _):
     start = datetime.now()
 
-    # Send VIDEO instead of PHOTO
+    # Send Local Video (Assets)
     response = await message.reply_video(
-        video=PING_IMG_URL,
+        video="RocksMusic/assets/ping.mp4",
         caption=_["ping_1"].format(app.mention),
+        supports_streaming=True
     )
 
-    pytgping = await Rocks.ping()
+    # Calculate bot stats
+    ping_time = await Rocks.ping()
     UP, CPU, RAM, DISK = await bot_sys_stats()
     resp = (datetime.now() - start).microseconds / 1000
 
-    # Edit caption instead of text (since it's a video)
+    # Edit caption after video loads
     await response.edit_caption(
-        _["ping_2"].format(resp, app.mention, UP, RAM, CPU, DISK, pytgping),
+        _["ping_2"].format(resp, app.mention, UP, RAM, CPU, DISK, ping_time),
         reply_markup=supp_markup(_),
     )
